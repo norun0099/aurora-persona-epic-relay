@@ -1,21 +1,33 @@
-from flask import Flask, request, jsonify
+import json
 import requests
 import os
 
-app = Flask(__name__)
-handler = app  # Vercel が Flask アプリを認識するためのエントリポイント
-
 RENDER_ENDPOINT = os.environ.get("RENDER_ENDPOINT")
 
-@app.route("/relay-memory", methods=["POST"])
-def relay_memory():
+def handler(request):
     try:
+        if request.method != "POST":
+            return {
+                "statusCode": 405,
+                "body": json.dumps({"error": "Method Not Allowed"})
+            }
+
         data = request.get_json()
+
         if not RENDER_ENDPOINT:
-            return jsonify({"error": "RENDER_ENDPOINT not set"}), 500
+            return {
+                "statusCode": 500,
+                "body": json.dumps({"error": "RENDER_ENDPOINT not set"})
+            }
 
         res = requests.post(RENDER_ENDPOINT, json=data)
-        return jsonify(res.json()), res.status_code
+        return {
+            "statusCode": res.status_code,
+            "body": res.text
+        }
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": str(e)})
+        }
